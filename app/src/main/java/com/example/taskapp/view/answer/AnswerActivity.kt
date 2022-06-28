@@ -19,6 +19,7 @@ import com.example.taskapp.view.main.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
@@ -80,20 +81,26 @@ class AnswerActivity : AppCompatActivity() {
                             this@AnswerActivity,
                             runningQuestion?.questionImageUrl ?: ""
                         )
-                        lifecycleScope.launch {
-                            viewModel.currentScore.collectLatest {
-                                tvCurrentScore.text = "Current Score: $it"
-                            }
-                        }
                         updateRecycler(questionsStack, runningQuestion)
                     }
+                }
+            }
+            launch {
+                viewModel.currentScore.collectLatest {
+                    binding.tvCurrentScore.text = "Current Score: $it"
                 }
             }
         }
 
         viewModel.currentQuestion.combine(viewModel.questions) { current, questions ->
-            binding.tvCurrentQuestion.text =
-                "Question $current / ${questions?.questions?.size}"
+            binding.run {
+
+                pbProgress.max = questions?.questions?.size ?: 0
+                pbProgress.progress = current
+
+                tvCurrentQuestion.text =
+                    "Question $current / ${questions?.questions?.size}"
+            }
         }.launchIn(lifecycleScope)
     }
 
@@ -105,12 +112,11 @@ class AnswerActivity : AppCompatActivity() {
             viewModel.extractAnswers(runningQuestion?.answers, runningQuestion?.correctAnswer)
         val answerAdapter = AnswersAdapter(answersList) {
             questions.pop()
+            if (it.isCorrect)
+                viewModel.updateScore(runningQuestion?.score)
             if (questions.empty()) {
                 saveAndExit()
             } else {
-                if (it.isCorrect)
-                    viewModel.updateScore(runningQuestion?.score)
-
                 lifecycleScope.launch {
                     delay(2000)
                     launch {
@@ -130,13 +136,11 @@ class AnswerActivity : AppCompatActivity() {
     private fun saveAndExit() {
         lifecycleScope.launch {
             UserPreferencesRepository(this@AnswerActivity).run {
-                async {
                     getUserScore.combine(viewModel.currentScore) { userScore, currentScore ->
                         if (currentScore > userScore.toInt()) {
                             setUserScore(currentScore.toString())
                         }
-                    }
-                }
+                    }.launchIn(lifecycleScope)
             }
 
             delay(2000)
