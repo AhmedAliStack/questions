@@ -37,6 +37,7 @@ class AnswerActivity : AppCompatActivity() {
         binding = ActivityAnswerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        //Avoid emitting data when device rotation
         if(savedInstanceState == null){
             handleReceivedData()
         }
@@ -45,10 +46,12 @@ class AnswerActivity : AppCompatActivity() {
 
     }
 
+    //Receive Data from Intent and update the ViewModel
     private fun handleReceivedData() {
         viewModel.updateQuestions(intent.getParcelableExtra("Response"))
     }
 
+    //Result of the Intent came from ViewModel
     private fun observeViewModel() {
         lifecycleScope.launchWhenStarted {
             viewModel.state.collectLatest {
@@ -67,6 +70,7 @@ class AnswerActivity : AppCompatActivity() {
         }
     }
 
+    //Update the UI async
     private fun updateUi(questionsStack: Stack<QuestionsModel.Question>) {
         lifecycleScope.launch {
             async {
@@ -104,6 +108,7 @@ class AnswerActivity : AppCompatActivity() {
         }.launchIn(lifecycleScope)
     }
 
+    //Handle the recyclerview
     private fun ActivityAnswerBinding.updateRecycler(
         questions: Stack<QuestionsModel.Question>,
         runningQuestion: QuestionsModel.Question?
@@ -133,6 +138,7 @@ class AnswerActivity : AppCompatActivity() {
         answerAdapter.notifyItemRangeChanged(0, answersList.size)
     }
 
+    //Save the result and return to main screen
     private fun saveAndExit() {
         lifecycleScope.launch {
             UserPreferencesRepository(this@AnswerActivity).run {
