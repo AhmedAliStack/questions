@@ -69,10 +69,10 @@ class AnswerActivity : AppCompatActivity() {
 
     private fun updateUi(questionsStack: Stack<QuestionsModel.Question>) {
         lifecycleScope.launch {
-            launch {
+            async {
                 viewModel.updateRunningQuestion(questionsStack.peek())
             }
-            launch {
+            async {
                 viewModel.runningQuestion.collectLatest { runningQuestion ->
                     binding.run {
                         tvQuestionPoints.text = "${runningQuestion?.score} Points"
@@ -85,7 +85,7 @@ class AnswerActivity : AppCompatActivity() {
                     }
                 }
             }
-            launch {
+            async {
                 viewModel.currentScore.collectLatest {
                     binding.tvCurrentScore.text = "Current Score: $it"
                 }
